@@ -54,3 +54,11 @@ GitHub Pages (UI demonstration):
 ---
 
 ## 📁 Project Structure
+---
+
+## ⚠️ Disclaimer
+This project is developed strictly for **academic purposes (Final Year Project)** at Universiti Kuala Lumpur (UniKL).
+
+All system demonstrations, interfaces, and functionalities are intended for educational evaluation only.  
+Sensitive backend configurations and credentials have been intentionally excluded from this public repository for security reasons.
+
