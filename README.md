@@ -51,6 +51,35 @@ GitHub Pages (UI demonstration):
 
 > Note: Some features such as camera access and authentication may be limited on GitHub Pages due to browser security restrictions.
 
+## Demo & Access Notes
+
+The system is deployed using GitHub Pages for demonstration purposes.
+
+Due to security considerations, authentication is disabled in the public deployment.  
+System modules can be accessed directly via the following links:
+
+- Login Page:  
+  https://skewpieee.github.io/QR-FaceRecognition-Website/
+
+- Student Dashboard:  
+  https://skewpieee.github.io/QR-FaceRecognition-Website/dashboard.html
+
+- QR Code Scanner:  
+  https://skewpieee.github.io/QR-FaceRecognition-Website/qrscanner.html
+
+- Face Recognition Module:  
+  https://skewpieee.github.io/QR-FaceRecognition-Website/face-recognition.html
+
+- Admin Panel:  
+  https://skewpieee.github.io/QR-FaceRecognition-Website/admin.html
+
+### 📱 Mobile Usage Recommendation
+For best performance and usability:
+- The **QR Code Scanner**
+- The **Face Recognition module**
+
+are recommended to be accessed using a **mobile device**, as they rely on camera functionality which is better supported on mobile browsers.
+
 ---
 
 ## 📁 Project Structure
