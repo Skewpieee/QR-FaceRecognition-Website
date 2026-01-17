@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Face Verification | QR Attendance</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    :root{ --blue:#1e90ff; --purple:#6f42c1; --green:#28a745; --bg:#000; --vh: 1vh; }
+    html,body{height:100%;margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:#fff}
+    .topbar {
+      background: linear-gradient(90deg, #003a8f, #eb8006);
+      color: #ffffff;
+      text-align: center;
+      padding: 12px;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    }
+    #status { margin-top:56px; text-align:left; font-weight:600; color:#ddd; padding:12px 18px; }
+    .camera-wrap{ position:absolute; inset:80px 12px 110px 12px; display:flex; align-items:center; justify-content:center; transition: opacity 0.25s ease; height:calc(var(--vh) * 100 - 190px); }
+    #video {position: absolute;top: 0;left: 0;width: 100%;height: 100%;object-fit: cover;background: black;}
+    .guide { position:absolute; border:4px solid rgba(40,200,120,0.95); width:64%; height:40%; top:50%; left:50%; transform:translate(-50%,-50%); border-radius:12px; box-shadow:0 0 26px rgba(40,200,120,0.24); pointer-events:none; z-index:30; }
+    .controls{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:45}
+    .btn{padding:10px 14px;border-radius:10px;border:none;font-weight:700;cursor:pointer;color:#fff}
+    .btn-back{background:#222} .btn-retry{background:var(--blue)} .btn-manual{background:var(--green)}
+    .small{font-size:13px;color:#cfd8dc;text-align:center;margin-top:8px}
+    .camera-wrap {
+      transition: opacity 0.25s ease;
+    }
+
+    .freeze-ui .camera-wrap {
+      opacity: 0.85;
+    }
+
+    .cardInfo {
+      position: absolute;
+      top: 72px;
+      right: 16px;
+      z-index: 50;
+      background: #ffffff;
+
+      padding: 14px 16px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+
+      display: flex;
+      align-items: center;
+      gap: 18px;
+
+      max-width: calc(100vw - 32px); /* mobile safety */
+    }
+
+    .cardText {
+      display: flex;
+      flex-direction: column;
+      gap: 6px; 
+    }
+
+    .cardInfo .name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #111;
+      line-height: 1.2;
+    }
+
+    .cardInfo #studentId {
+      font-size: 13px;
+      color: #666;
+    }
+
+    /* 🔒 Lock reference photo size */
+    #referencePhotoCard {
+      width: 72px;
+      height: 88px;
+      min-width: 72px;
+      min-height: 88px;
+      max-width: 72px;
+      max-height: 88px;
+
+      border-radius: 12px;
+      object-fit: cover;
+      object-position: top;
+      flex-shrink: 0;
+    }
+
+    .name { font-weight:800; color:#333 }
+    .status-overlay {
+      position: absolute;
+      top: 72px;
+      left: 16px;
+      z-index: 50;
+      padding: 8px 14px;
+      background: rgba(0,0,0,0.55);
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    .freeze-ui {
+      position: fixed !important;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    @media(max-width:720px){ .guide{ width:78%; height:36% } .cardInfo{ display:none } }
+  </style>
+</head>
+<body>
+  <div class="topbar">Face Verification</div>
+  
+
+  <div class="camera-wrap">
+    <div id="status" class="status-overlay">Loading…</div>
+    <video
+  id="video"
+  autoplay
+  muted
+  playsinline
+  webkit-playsinline
+  style="width:100%;max-width:360px;border-radius:12px;background:#000">
+</video>
+ <canvas id="overlay" style="position:absolute;top:0;left:0;"></canvas>
+
+    <div class="guide" aria-hidden="true"></div>
+  </div>
+
+  <!-- <div class="small" id="helpText">Align student's face inside the green frame. Back camera is used by default.</div> -->
+
+  <div class="controls">
+  <button class="btn btn-back" onclick="window.location.href='admin.html'">← Back</button>
+  <button class="btn btn-retry" id="startFaceBtn">Start Face Recognition</button>
+  <button class="btn btn-manual" id="manualPresentBtn">Mark Present (Manual)</button>
+</div>
+
+  <div class="cardInfo" id="studentCard">
+  <img id="referencePhotoCard">
+
+  <div class="cardText">
+    <div class="name" id="studentName"></div>
+    <div id="studentId"></div>
+  </div>
+</div>
+
+  <img id="referencePhoto" style="display:none">
+  <script defer src="/models/face-api.min.js"></script>
+
+<script type="module">
+/* ================= FIREBASE ================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  updateDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ================= FIREBASE ================= */
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* ================= LOAD MODELS ================= */
+const Model_URL = "/models";
+
+await Promise.all([
+  faceapi.nets.faceRecognitionNet.loadFromUri(Model_URL),
+  faceapi.nets.faceLandmark68Net.loadFromUri(Model_URL),
+  faceapi.nets.tinyFaceDetector.loadFromUri(Model_URL)
+]);
+console.log("All face-api models loaded");
+
+/* ================= GLOBALS ================= */
+const video = document.getElementById("video");
+const overlay = document.getElementById("overlay");
+const ctx = overlay.getContext("2d"); 
+
+let displaySize = null;
+let referenceDescriptor = null;
+let isFaceRecognitionRunning = false;
+let faceMatched = false;
+let scanStartTime = null;
+
+const MATCH_THRESHOLD = 0.55; // lower = stricter
+const REQUIRED_MATCH_MS = 1000; // 1 second
+const MAX_SCAN_TIME = 8000; // 8 seconds
+
+/* ================= STATUS UPDATES ================= */
+  function setStatus(text) {
+  document.getElementById("status").textContent = text;
+}
+
+/* ================= PARAMS ================= */
+const url = new URL(window.location.href);
+
+const rawStudent = url.searchParams.get("studentId");
+const sessionId  = url.searchParams.get("session");
+
+if (!rawStudent || !sessionId) {
+  Swal.fire("Missing Data", "Student or session missing. Please rescan QR.", "error")
+    .then(() => window.location.replace("admin.html"));
+  throw new Error("Missing parameters");
+}
+
+const studentDocId = rawStudent; // already Firestore document ID
+
+
+console.log("studentDocId:", studentDocId);
+console.log("sessionId:", sessionId);
+
+/* ================= LOAD STUDENT ================= */
+import { getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+let studentData = null;
+
+async function loadStudent() {
+  const snap = await getDoc(doc(db, "students", studentDocId));
+
+  if (!snap.exists()) {
+    await Swal.fire("Student not found", "Please re-scan QR.", "error");
+    window.location.replace("admin.html");
+    throw new Error("Student not found");
+  }
+
+  studentData = snap.data();
+
+  document.getElementById("studentCard").style.display = "flex";
+  document.getElementById("referencePhotoCard").src = studentData.photoUrl;
+
+  document.getElementById("studentName").textContent = studentData.fullName;
+  document.getElementById("studentId").textContent = studentData.studentId;
+}
+await loadStudent();
+setStatus("Ready for face verification");
+
+/* ================= VIEWPORT HEIGHT FIX ================= */
+function setViewportHeight() {
+  document.documentElement.style.setProperty(
+    "--vh",
+    `${window.innerHeight * 0.01}px`
+  );
+}
+
+setViewportHeight();
+window.addEventListener("resize", setViewportHeight);
+
+/* ============ LOAD REFERENCE PHOTO ============ */
+if (studentData.photoUrl) {
+  const refImg = document.getElementById("referencePhoto");
+
+  refImg.crossOrigin = "anonymous";
+  refImg.src = studentData.photoUrl;
+  refImg.alt = studentData.fullName;
+
+  refImg.onload = async () => {
+    console.log("Reference photo loaded");
+
+    await loadReferenceDescriptor();
+  };
+} else {
+  console.warn("No reference photo found for student");
+}
+
+/* ============ LOAD REFERENCE DESCRIPTOR ============ */
+
+async function loadReferenceDescriptor() {
+  const img = document.getElementById("referencePhoto");
+
+  const detection = await faceapi
+    .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
+    .withFaceLandmarks()
+    .withFaceDescriptor();
+
+  if (!detection) {
+    Swal.fire(
+      "Face not detected",
+      "No face detected in reference photo.",
+      "error"
+    );
+    throw new Error("No face in reference image");
+  }
+
+  referenceDescriptor = detection.descriptor;
+  console.log("Reference face descriptor ready");
+}
+
+/* ================= CAMERA ================= */
+async function startCamera() {
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: { exact: "environment" } // back camera
+    },
+    audio: false
+  });
+
+  video.srcObject = stream;
+
+  return new Promise(resolve => {
+    video.onloadedmetadata = () => {
+      video.play();
+
+      overlay.width = video.videoWidth;
+      overlay.height = video.videoHeight;
+
+      displaySize = {
+        width: video.videoWidth,
+        height: video.videoHeight
+      };
+
+      console.log("Back camera started");
+      resolve();
+    };
+  });
+}
+/* ===================== ATTENDANCE ===================== */
+async function markPresent(method = "face") {
+  if (!studentDocId || !sessionId) {
+    console.error("Missing studentDocId or sessionId");
+    return;
+  }
+
+  console.log("Marking present:", studentDocId, sessionId);
+
+  // 1️⃣ Student attendance log
+  const logsRef = collection(
+    db,
+    "students",
+    studentDocId,
+    "attendanceLogs"
+  );
+  const q = query(logsRef, where("session", "==", sessionId));
+  const snap = await getDocs(q);
+
+  if (!snap.empty) {
+    await updateDoc(snap.docs[0].ref, {
+      status: "Present",
+      method,
+      verifiedAt: new Date().toISOString()
+    });
+  } else {
+    await addDoc(logsRef, {
+      session: sessionId,
+      status: "Present",
+      method,
+      verifiedAt: new Date().toISOString()
+    });
+  }
+
+  // 2️⃣ Session attendance (ADMIN TABLE USES THIS)
+  await updateDoc(
+    doc(db, "sessions", sessionId, "attendance", studentDocId),
+    {
+      status: "Present",
+      method,
+      updatedAt: new Date().toISOString()
+    }
+  );
+
+  console.log("Attendance updated for admin table");
+
+}
+
+/* ================= FACE VERIFICATION ================= */
+let faceLoop = null;
+
+function startFaceRecognition() {
+  if (faceLoop) return;
+
+  console.log("Face recognition started");
+
+  faceLoop = setInterval(async () => {
+    if (!isFaceRecognitionRunning) return;
+    if (!referenceDescriptor) return;
+
+    // ⏱️ STEP 3: Timeout check (wrong / unmatched face)
+    if (Date.now() - scanStartTime > MAX_SCAN_TIME) {
+      clearInterval(faceLoop);
+      faceLoop = null;
+      isFaceRecognitionRunning = false;
+
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+      setStatus("Face does not match reference ❌");
+
+      Swal.fire({
+        icon: "error",
+        title: "Face Verification Failed",
+        text: "Face does not match the registered student. Please use manual attendance.",
+        confirmButtonText: "OK"
+      });
+
+      return;
+    }
+
+    const detection = await faceapi
+      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    if (!detection) return;
+
+    const resized = faceapi.resizeResults(detection, displaySize);
+    const box = resized.detection.box;
+
+    // 🔧 Gentle expansion (not too big)
+    const paddingX = box.width * 0.08;
+    const paddingY = box.height * 0.12;
+
+    const drawX = box.x - paddingX;
+    const drawY = box.y - paddingY;
+    const drawW = box.width + paddingX * 2;
+    const drawH = box.height + paddingY * 2;
+
+    // 🟡 Detecting | 🟢 Verified
+    ctx.strokeStyle = faceMatched ? "#00ff88" : "#ffeb3b";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(drawX, drawY, drawW, drawH);
+
+    const distance = faceapi.euclideanDistance(
+      detection.descriptor,
+      referenceDescriptor
+    );
+
+    console.log("Face distance:", distance.toFixed(3));
+
+    if (distance < MATCH_THRESHOLD) {
+      faceMatched = true;
+      clearInterval(faceLoop);
+      faceLoop = null;
+      isFaceRecognitionRunning = false;
+      setStatus("Face verified ✔");
+      await onFaceVerified();
+    }
+  }, 300);
+}
+
+// Called ONLY when face is successfully verified
+async function onFaceVerified() {
+  console.log("Face verified");
+
+  document.body.classList.add("freeze-ui");
+
+  await markPresent("face");
+
+  // Stop camera
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+  }
+
+  Swal.fire({
+    title: "Attendance Recorded",
+    text: `${studentData.fullName} marked present`,
+    icon: "success",
+    timer: 1200,
+    showConfirmButton: false
+  }).then(() => {
+
+    // ✅ Auto return to admin after success
+  setTimeout(() => {
+    window.location.href = "admin.html";
+  }, 1200);
+  });
+}
+
+
+// Start Face Recognition button
+document.getElementById("startFaceBtn").addEventListener("click", async () => {
+  if (isFaceRecognitionRunning) return;
+
+  faceMatched = false;              // 🔁 reset
+  isFaceRecognitionRunning = true;
+  scanStartTime = Date.now(); // ⏱️ start timer
+  setStatus("Detecting face…");
+  await startCamera();
+  startFaceRecognition();
+});
+
+// Manual Present → mark immediately
+document.getElementById("manualPresentBtn")
+  .addEventListener("click", async () => {
+
+    await markPresent("manual");
+
+    Swal.fire({
+      title: "Attendance Recorded",
+      text: `${studentData.fullName} marked present (manual)`,
+      icon: "success",
+      timer: 1500,
+      showConfirmButton: false
+    });
+  });
+
+  
+</script>
+</body>
+</html>

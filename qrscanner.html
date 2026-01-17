@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QR Code Scanner</title>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- QR Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f8fa;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: linear-gradient(90deg, #003a8f, #eb8006);
+      color: #ffffff;
+      text-align: center;
+      padding: 15px 0;
+      font-size: 22px;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    #reader {
+      width: 100%;
+      border: 2px solid #007bff;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .status {
+      margin-top: 20px;
+      color: #333;
+      font-weight: bold;
+    }
+
+    .back-btn {
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+
+    .back-btn:hover {
+      background-color: #5a6268;
+    }
+  </style>
+</head>
+<body>
+
+<header>QR Code Scanner</header>
+
+<div class="container">
+  <p>Scan a student's QR code to mark attendance.</p>
+  <div id="reader"></div>
+  <p class="status" id="statusText">Waiting for QR scan...</p>
+  <button class="back-btn" onclick="goBack()">Back to Admin Panel</button>
+</div>
+
+<script type="module">
+/* ================= FIREBASE ================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  collection,
+  query,
+  where,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+
+/* ================= FIREBASE ================= */
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+// Helper to find student by matric ID
+async function findStudentByMatric(matricId) {
+  const q = query(
+    collection(db, "students"),
+    where("studentId", "==", matricId)
+  );
+
+  const snap = await getDocs(q);
+
+  if (snap.empty) {
+    throw new Error("Student not found in system");
+  }
+
+  return snap.docs[0]; // Firestore student document
+}
+
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* ================= SESSION ================= */
+const statusText = document.getElementById("statusText");
+const url = new URL(window.location.href);
+const sessionId = url.searchParams.get("session");
+
+if (!sessionId) {
+  await Swal.fire("Missing Session", "Please select a session first.", "error");
+  throw new Error("Missing session");
+}
+
+/* ================= HELPERS ================= */
+async function markPending(sessionId, studentDocId, studentName) {
+
+  // 🚨 SAFETY CHECK: Firestore IDs are long, matric IDs are numeric
+  if (/^\d+$/.test(studentDocId)) {
+    throw new Error(
+      "FATAL: markPending called with matric ID instead of Firestore document ID"
+    );
+  }
+
+  const attendanceRef = doc(
+    db,
+    "sessions",
+    sessionId,
+    "attendance",
+    studentDocId
+  );
+
+  await setDoc(attendanceRef, {
+    name: studentName,
+    status: "Pending",
+    method: "qr",
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+/* ================= QR SCANNER ================= */
+const html5QrCode = new Html5Qrcode("reader");
+let scanLocked = false;
+
+async function onScanSuccess(decodedText) {
+  if (scanLocked) return;
+  scanLocked = true;
+
+  try {
+    const qrData = decodedText.trim();
+    console.log("QR detected:", qrData);
+
+    if (!qrData.includes("|")) {
+      throw new Error("Invalid QR format");
+    }
+
+    const [matricId, studentName] = qrData.split("|").map(s => s.trim());
+
+    // 🔍 Find student document using matric ID
+    const q = query(
+      collection(db, "students"),
+      where("studentId", "==", matricId)
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      throw new Error("Student not found in system");
+    }
+
+    const studentDocId = snap.docs[0].id;
+
+    // ✅ THIS IS THE KEY FIX
+    await markPending(sessionId, studentDocId, studentName);
+
+
+    // Stop camera IMMEDIATELY
+    await html5QrCode.stop();
+
+    // Decision popup
+    const result = await Swal.fire({
+      title: "QR Verified",
+      text: `Student: ${studentName}`,
+      icon: "success",
+      showCancelButton: true,
+      confirmButtonText: "Proceed to Face Recognition",
+      cancelButtonText: "Back to Admin",
+      allowOutsideClick: false
+    });
+
+    if (result.isConfirmed) {
+      window.location.href =
+  `face-recognition.html?studentId=${encodeURIComponent(studentDocId)}&session=${encodeURIComponent(sessionId)}`;
+    } else {
+      window.location.href = "admin.html";
+    }
+
+  } catch (err) {
+    console.error(err);
+    scanLocked = false;
+
+    await Swal.fire(
+      "Scan Failed",
+      err.message || "Failed to process QR. Please try again.",
+      "error"
+    );
+  }
+}
+
+/* ================= START SCANNER ================= */
+html5QrCode.start(
+  { facingMode: "environment" },
+  { fps: 10, qrbox: 250 },
+  onScanSuccess
+).catch(err => {
+  Swal.fire("Camera Error", "Camera permission denied.", "error");
+  console.error(err);
+});
+
+/* ================= NAV ================= */
+window.goBack = function () {
+  window.location.href = "admin.html";
+};
+</script>
+
+</body>
+</html>

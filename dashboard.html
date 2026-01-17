@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Dashboard | QR-Based System</title>
+
+  <style>
+    :root {
+      --blue: #007bff;
+      --dark-blue: #0056b3;
+      --green: #28a745;
+      --red: #dc3545;
+      --bg-gray: #f1f1f1;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f1f1f1;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: block;
+    }
+
+
+    /* HEADER (same as login) */
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      background: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      z-index: 50;
+    }
+    .header .orange { flex: 0 0 8%; background: #f58220; height:100%; }
+    .header .blue { flex: 0 0 18%; background: #011e6a; height:100%; }
+    .header .white {
+      flex: 1;
+      background:white;
+      display:flex;
+      align-items:center;
+      padding-left:18px;
+    }
+    .header img {
+      height: 38px;
+    }
+
+    .header-title {
+      margin-left: 14px;
+      font-weight: 600;
+      color: #213247;
+      font-size: 14px;
+    }
+
+    .dashboard {
+      background: #fff;
+      width: 100%;
+      max-width: 450px;
+      margin: 100px auto 40px;
+      border-radius: 14px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+      text-align: center;
+      padding: 20px;          /* 🔧 reduced */
+      display: none;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      color: var(--blue);
+      margin-bottom: 6px;
+      font-size: 1.4rem;
+    }
+
+    .photo-qr-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .photo {
+      width: 100px;
+      height: 120px;
+      border-radius: 8px;
+      border: 2px solid var(--blue);
+      object-fit: cover;
+    }
+
+    #qrCode {
+      width: 120px;
+      height: 120px;
+      border-radius: 8px;
+      border: 2px solid #ddd;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      margin-top: 10px;
+      font-weight: bold;
+      color: white;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .btn-green { background: var(--green); }
+    .btn-red { background: var(--red); }
+    .btn-blue { background: var(--blue); }
+
+    #loader {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.9);
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 6px solid #ccc;
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .timetable-card {
+      margin-top: 22px;
+      padding: 16px;
+      border-radius: 12px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      text-align: left;
+    }
+
+    .timetable-card h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      color: #0b1f6a;
+      font-size: 16px;
+    }
+
+    .timetable-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      margin-bottom: 10px;
+    }
+
+    .timetable-item strong {
+      color: #0b1f6a;
+    }
+
+    .timetable-meta {
+      font-size: 13px;
+      color: #4b5563;
+    }
+
+    .muted {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 500px) {
+      .photo-qr-container { flex-direction: column; }
+    }
+
+    @media (max-width: 480px) {
+
+  .dashboard {
+    padding: 16px;
+  }
+
+  .photo {
+    width: 90px;
+    height: 110px;
+  }
+
+  #qrCode {
+    width: 140px;
+    height: 140px;
+  }
+
+  .header-title {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+}
+
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="orange"></div>
+    <div class="blue"></div>
+    <div class="white">
+      <img src="assets/unikl-wordmark.webp">
+      <span class="header-title">
+        Student Dashboard — Universiti Kuala Lumpur
+      </span>
+    </div>
+  </div>
+
+  <!-- LOADER -->
+  <div id="loader">
+    <div class="spinner"></div>
+    <div style="margin-top:15px;color:#333;font-weight:600;">Loading your dashboard...</div>
+  </div>
+
+  <!-- MAIN DASHBOARD -->
+  <div class="dashboard" id="dashboard">
+  <h1>Welcome, <span id="studentName">Student</span> 👋</h1>
+  <p>ID: <span id="studentId">N/A</span></p>
+
+  <div class="photo-qr-container">
+    <img id="studentPhoto" class="photo"
+         src="https://placehold.co/120x160?text=No+Photo">
+    <img id="qrCode"/>
+  </div>
+
+  <hr style="margin:24px 0; border:none; border-top:1px solid #e5e7eb;">
+
+  <h3 style="margin-bottom:12px; color:#213247;">
+    📅 My Timetable
+  </h3>
+
+  <!-- STUDENT TIMETABLE -->
+  <div class="timetable-card">
+    <h3>📅 My Timetable</h3>
+    <div id="timetableList" class="timetable-list">
+      <p class="muted">Loading timetable...</p>
+    </div>
+  </div>
+
+
+  <button id="downloadBtn" class="btn btn-green">
+    Download QR Code
+  </button>
+
+  <button id="examSlipBtn" class="btn btn-blue">
+    🧾 Download Exam Slip
+  </button>
+
+
+  <button id="changePwdBtn" class="btn btn-blue" style="display:none;">
+    🔐 Change Password
+  </button>
+
+  <button id="logoutBtn" class="btn btn-red">
+    Logout
+  </button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ================= FIREBASE ================= */
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const loader = document.getElementById("loader");
+const dashboard = document.getElementById("dashboard");
+const studentName = document.getElementById("studentName");
+const studentId = document.getElementById("studentId");
+const studentPhoto = document.getElementById("studentPhoto");
+
+
+const changeBtn = document.getElementById("changePwdBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+
+let studentData = null;
+
+// 🔒 Disable until student data is loaded
+examSlipBtn.disabled = true;
+
+
+logoutBtn.onclick = async () => {
+  await signOut(auth);
+  window.location.replace("index.html");
+};
+
+const downloadBtn = document.getElementById("downloadBtn");
+const qrImg = document.getElementById("qrCode");
+
+downloadBtn.onclick = async () => {
+  try {
+    // Fetch the QR image as a blob
+    const response = await fetch(qrImg.src);
+    const blob = await response.blob();
+
+    // Create temporary download link
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "student-qr-code.png";
+
+    document.body.appendChild(a);
+    a.click();
+
+    // Cleanup
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert("Failed to download QR code");
+    console.error(err);
+  }
+};
+
+// load Timeteable
+async function loadStudentTimetable(subjectCodes) {
+  const timetableList = document.getElementById("timetableList");
+  timetableList.innerHTML = "";
+
+  if (!subjectCodes || subjectCodes.length === 0) {
+    timetableList.innerHTML =
+      `<p class="muted">No subjects registered.</p>`;
+    return;
+  }
+
+  for (const code of subjectCodes) {
+    try {
+      const subjectSnap = await getDoc(doc(db, "subjects", code));
+      if (!subjectSnap.exists()) continue;
+
+      const subject = subjectSnap.data();
+
+      // 🛡️ Guard against broken docs
+      if (!subject.name || !subject.day || !subject.time) continue;
+
+      const item = document.createElement("div");
+      item.className = "timetable-item";
+
+      item.innerHTML = `
+        <strong>${subject.code} — ${subject.name}</strong>
+        <div class="timetable-meta">
+          📅 ${subject.day}<br>
+          ⏰ ${subject.time}<br>
+          📍 ${subject.venue}<br>
+          👨‍🏫 ${subject.lecturer}
+        </div>
+      `;
+
+      timetableList.appendChild(item);
+
+    } catch (err) {
+      console.error("Failed to load subject:", code, err);
+    }
+  }
+}
+    //
+    async function loadImageAsBase64(url) {
+      const res = await fetch(url);
+      const blob = await res.blob();
+
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+    }
+
+
+      // Dashboard
+      onAuthStateChanged(auth, async (user) => {
+
+        try {
+          if (!user) {
+            location.replace("index.html");
+            return;
+          }
+
+          console.log("DASHBOARD UID:", user.uid);
+
+          const snap = await getDoc(doc(db, "students", user.uid));
+          if (!snap.exists()) {
+            throw new Error("Student record not found");
+          }
+
+          studentData = snap.data();
+
+          if (studentData.mustChangePassword === true) {
+            window.location.replace("student-change-password.html");
+            return;
+          }
+          
+          const examSlipBtn = document.getElementById("examSlipBtn");
+          
+          // ✅ Enable exam slip button after data is ready
+            examSlipBtn.disabled = false;
+
+          studentName.textContent = studentData.fullName;
+          studentId.textContent = studentData.studentId;
+          studentPhoto.src =
+            studentData.photoUrl || "https://placehold.co/120x160";
+
+            // 📅 Load timetable
+            await loadStudentTimetable(studentData.subjects);
+
+            // ✅ QR GENERATION (FIX)
+            const qrCodeImg = document.getElementById("qrCode");
+            const qrText = `${studentData.studentId}|${studentData.fullName}`;
+            console.log("QR TEXT:", qrText);
+
+            qrCodeImg.src =
+            "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" +
+            encodeURIComponent(qrText);
+
+          dashboard.style.display = "block";
+
+        } catch (err) {
+          console.error("DASHBOARD LOAD ERROR:", err);
+          alert("Failed to load dashboard. Please contact admin.");
+          location.replace("index.html");
+        } finally {
+          loader.style.display = "none";
+        }
+
+      });
+
+    examSlipBtn.onclick = async () => {
+      try {
+        // 🛡️ Safety checks
+        if (!studentData || !studentData.subjects) {
+          alert("Student data not ready yet.");
+          return;
+        }
+
+        if (!window.jspdf) {
+          throw new Error("jsPDF library not loaded");
+        }
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF();
+
+        // ===== LOAD UNIKL LOGO =====
+        const logoBase64 = await loadImageAsBase64("assets/unikl-emblem.png");
+
+        // ===== HEADER =====
+        pdf.addImage(logoBase64, "PNG", 20, 6, 22, 22);
+
+        pdf.setFontSize(14);
+        pdf.text("Universiti Kuala Lumpur", 105, 18, { align: "center" });
+
+        pdf.setFontSize(11);
+        pdf.text("Official Examination Slip", 105, 26, { align: "center" });
+
+        pdf.line(15, 32, 195, 32);
+
+
+        //STUDENT INFO//
+        pdf.text(`Name : ${studentData.fullName}`, 20, 40);
+        pdf.text(`Student ID : ${studentData.studentId}`, 20, 48);
+
+        // Qr Text//
+        const qrText = `${studentId.textContent}|${studentName.textContent}`;
+        const qrImageUrl =
+          "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" +
+          encodeURIComponent(qrText);
+
+        // Fetch QR image as blob
+        const qrResponse = await fetch(qrImageUrl);
+        const qrBlob = await qrResponse.blob();
+
+        // Convert blob → base64
+        const qrBase64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(qrBlob);
+        });
+
+        pdf.addImage(qrBase64, "PNG", 150, 35, 35, 35);
+
+        //SUBJECT LIST//
+        let y = 95;
+        pdf.text("Registered Subjects", 20, y);
+        y += 10;
+
+        for (const code of studentData.subjects) {
+          const snap = await getDoc(doc(db, "subjects", code));
+          if (!snap.exists() || !snap.data().name) continue;
+
+
+          const s = snap.data();
+
+          pdf.text(`${s.code} — ${s.name || "Unnamed Subject"}`, 20, y);
+          y += 6;
+          
+          pdf.text(
+            `${s.day || "-"} | ${s.time || "-"} | ${s.venue || "-"} | ${s.lecturer || "-"}`,
+            22,
+            y
+          );
+
+          y += 8;
+
+          if (y > 270) {
+            pdf.addPage();
+            y = 20;
+          }
+        }
+
+        pdf.save(`Exam_Slip_${studentData.studentId}.pdf`);
+
+      } catch (err) {
+        console.error("EXAM SLIP ERROR:", err);
+        alert("Failed to generate exam slip. Please try again.");
+      }
+    };
+
+
+</script>
+</body>
+</html>

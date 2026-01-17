@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login | QR-Based Student System</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg: #eceff1;
+      --card-bg: #ffffff;
+      --primary-blue: #011e6a;
+      --primary-orange: #f58220;
+      --muted: #6b6f76;
+      --accent: #0f1724;
+      --radius: 14px;
+      --shadow: 0 10px 30px rgba(16,24,40,0.12);
+      --suffix: "@s.unikl.edu.my";
+    }
+
+    html,body{
+      height:100%;
+      margin:0;
+      font-family:Inter,system-ui;
+      background:var(--bg);
+    }
+
+    /* HEADER */
+    .top-stripe{
+      height:56px;
+      display:flex;
+      align-items:center;
+      background:white;
+      box-shadow:0 2px 6px rgba(3,6,12,0.06);
+      position:sticky;
+      top:0;
+      z-index:50;
+    }
+    .stripe-orange{ flex:0 0 8%; background:var(--primary-orange); height:100%; }
+    .stripe-blue{ flex:0 0 18%; background:var(--primary-blue); height:100%; }
+    .stripe-white{
+      flex:1;
+      height:100%;
+      background:white;
+      display:flex;
+      align-items:center;
+      padding-left:18px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      font-weight:600;
+      color:#213247;
+    }
+    .brand img{ height:38px; }
+
+    /* Hide header text & logos mobile */
+    @media(max-width:980px){
+      .brand{ display:none !important; }
+      .top-stripe{ height:42px !important; }
+      .stripe-white{ padding-left:0 !important; }
+    }
+
+    /* Page Layout */
+    .wrap{
+      max-width:1200px;
+      margin: 28px auto;
+      padding: 26px;
+      display:grid;
+      grid-template-columns: 1fr 560px;
+      gap: 28px;
+    }
+
+    .card{
+      background:var(--card-bg);
+      border-radius:var(--radius);
+      padding:44px;
+      box-shadow:var(--shadow);
+      position:relative;
+    }
+
+    /* MOBILE WORDMARK ON TOP */
+    .logo-mobile-wordmark{
+      display:none;
+      width:70%;
+      margin:0 auto 18px auto;
+    }
+
+    /* REMOVE EMBLEM */
+    .logo-mobile-emblem{ display:none !important; }
+
+    .card h1{
+      margin-top:0;
+      font-size:26px;
+      color:var(--accent);
+      font-weight:700;
+    }
+
+    .lead{
+      margin:0 0 20px;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    /* Email Input */
+    label{ 
+      font-size:13px; 
+      color:var(--muted); 
+      margin-bottom:8px;
+      display:block;
+    }
+
+    .email-wrapper{ display:flex; }
+    .email-local{
+      flex:1;
+      display:flex;
+      border-radius:10px;
+      overflow:hidden;
+      background:#f7f9fb;
+      border:1px solid #e6eef7;
+    }
+    .email-local input{
+      border:0;
+      padding:12px 14px;
+      width:100%;
+      font-size:14px;
+      outline:none;
+    }
+    .email-suffix{
+      padding:8px 12px;
+      background:#f1f5f9;
+      font-size:13px;
+      border-left:1px solid #e6eef7;
+      color:#243b53;
+    }
+
+    /* Password */
+    input[type="password"]{
+      width:100%;
+      padding:12px 14px;
+      border-radius:10px;
+      border:1px solid #e6eef7;
+      background:#fbfdff;
+      font-size:14px;
+      box-sizing:border-box;
+    }
+
+    .forgot{
+      text-align:right;
+      font-size:13px;
+      margin-top:6px;
+      margin-bottom:16px;
+    }
+    .forgot a{ color:var(--primary-blue); }
+
+    .btn{
+      width:100%;
+      background:var(--primary-blue);
+      color:white;
+      padding:12px 14px;
+      border-radius:10px;
+      font-size:15px;
+      font-weight:600;
+      border:0;
+      cursor:pointer;
+      margin-top:6px;
+    }
+
+    .small{
+      margin-top:18px;
+      text-align:center;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .small a{ color:var(--primary-blue); font-weight:600; }
+
+    /* IMAGE PANEL (desktop only) */
+    .image-panel{
+      border-radius:var(--radius);
+      overflow:hidden;
+      box-shadow:var(--shadow);
+    }
+    .image-panel img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    /* MOBILE FIX — Remove bottom image panel */
+    @media(max-width:980px){
+      .wrap{
+        display:flex;
+        flex-direction:column;
+      }
+
+      .image-panel{
+        display:none !important;
+      }
+
+      /* show wordmark on top */
+      .logo-mobile-wordmark{
+        display:block !important;
+      }
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <!-- TOP HEADER BAR -->
+  <div class="top-stripe">
+    <div class="stripe-orange"></div>
+    <div class="stripe-blue"></div>
+    <div class="stripe-white">
+      <div class="brand">
+        <img src="assets/unikl-wordmark.webp">
+        QR Attendance System — Universiti Kuala Lumpur
+      </div>
+    </div>
+  </div>
+
+  <main class="wrap">
+
+    <!-- LOGIN CARD -->
+    <section class="card">
+
+      <!-- MOBILE WORDMARK -->
+      <img class="logo-mobile-wordmark" src="assets/unikl-wordmark.webp">
+
+      <h1>Welcome Back 👋</h1>
+      <p class="lead">Sign in with your UniKL student email to continue.</p>
+
+      <!-- EMAIL -->
+      <label>Email</label>
+      <div class="email-wrapper">
+        <div class="email-local">
+          <input id="emailLocal" type="text" placeholder="your.name" />
+          <div class="email-suffix">@s.unikl.edu.my</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#8b98a6;margin-top:6px">
+        Or paste full email (your.name@s.unikl.edu.my)
+      </div>
+
+      <!-- PASSWORD -->
+      <label style="margin-top:16px;">Password</label>
+      <input id="password" type="password" placeholder="At least 6 characters" />
+
+      <div class="forgot">
+        <a href="forgot-password.html">Forgot Password?</a>
+      </div>
+
+      <button id="loginBtn" class="btn">Sign in</button>
+
+      <div id="errorMsg" style="display:none;background:#ffecec;color:#6e2a2a;padding:10px;border-radius:8px;margin-top:12px;"></div>
+
+      <div class="small" style="text-align:center;">
+        Student accounts are issued by the system administrator.
+      </div>
+
+    </section>
+
+    <!-- DESKTOP IMAGE PANEL -->
+    <aside class="image-panel">
+      <img src="assets/unikl-bg.jpg" alt="UniKL Building">
+    </aside>
+
+  </main>
+
+  
+
+
+  <!-- FIREBASE AUTH (same as before) -->
+  <script type="module">
+    window.onerror = function (msg, src, line, col, err) {
+  console.error("GLOBAL ERROR:", msg, "at", line + ":" + col);
+};
+
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  /* ================= FIREBASE ================= */
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const emailInput = document.getElementById("emailLocal");
+  const passwordInput = document.getElementById("password");
+  const loginBtn = document.getElementById("loginBtn");
+  const errorMsg = document.getElementById("errorMsg");
+
+  console.log("INDEX VERSION: 2025-LOGIN-FIX-V3");
+  console.log("DOM CHECK:", {
+  emailInput,
+  passwordInput,
+  loginBtn,
+  errorMsg
+});
+
+  loginBtn.onclick = async () => {
+  errorMsg.style.display = "none";
+
+  try {
+    console.log("LOGIN CLICKED");
+
+    // ✅ DEFINE VARIABLES FIRST (THIS IS CRITICAL)
+    let email = emailInput.value.trim();
+    let password = passwordInput.value.trim();
+
+    console.log("RAW INPUT:", email);
+
+    if (!email || !password) {
+      throw new Error("Please enter email and password");
+    }
+
+    // ✅ ONLY STUDENT EMAILS GET AUTO-SUFFIX
+    if (!email.includes("@")) {
+      email = email + "@s.unikl.edu.my";
+    }
+
+    console.log("EMAIL USED:", email);
+
+    // ✅ NOW IT IS SAFE TO USE `email`
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    console.log("AUTH OK");
+
+    const uid = cred.user.uid;
+    console.log("LOGIN UID:", uid);
+
+    // 🔑 ADMIN FIRST
+    const adminSnap = await getDoc(doc(db, "admins", uid));
+    if (adminSnap.exists()) {
+      location.replace("admin.html");
+      return;
+    }
+
+    // 👨‍🎓 STUDENT
+    const studentSnap = await getDoc(doc(db, "students", uid));
+    if (!studentSnap.exists()) {
+      throw new Error("Student record not found");
+    }
+
+    const studentData = studentSnap.data();
+
+    // 🔐 FORCE PASSWORD CHANGE ON FIRST LOGIN
+    if (studentData.mustChangePassword === true) {
+      location.replace("student-change-password.html");
+      return;
+    }   
+
+    location.replace("dashboard.html");
+
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+    errorMsg.textContent = err.message;
+    errorMsg.style.display = "block";
+  }
+};
+
+</script>
+</body>
+</html>
